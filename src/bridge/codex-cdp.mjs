@@ -37,6 +37,8 @@ const RENDERER_ACTIONS = new Set(["pin", "new"]);
 const PIN_ACTION_LABELS = Object.freeze([
   "Pin chat",
   "Unpin chat",
+  "Chat anpinnen",
+  "Chat nicht mehr anpinnen",
   "置顶聊天",
   "取消置顶聊天",
   "釘選聊天",
@@ -46,6 +48,8 @@ const NEW_ACTION_LABELS = Object.freeze([
   "New task",
   "New chat",
   "New conversation",
+  "Neuer Chat",
+  "Neue Aufgabe",
   "新对话",
   "新對話",
   "新建任务",
@@ -361,6 +365,14 @@ async function fetchJson(url, timeout = 1200) {
 }
 
 async function discoverDebugPort() {
+  if (process.platform === "win32") {
+    const port = Number(process.env.CODEX_CDP_PORT || 9222);
+    if (!Number.isInteger(port) || port < 1 || port > 65535) {
+      throw new Error("Invalid CODEX_CDP_PORT");
+    }
+    await fetchJson(`http://127.0.0.1:${port}/json/version`, 500);
+    return port;
+  }
   const { stdout } = await execFileAsync("/bin/ps", ["-axo", "command="], { timeout: 4000 });
   for (const line of stdout.split("\n")) {
     if (!line.includes("--remote-debugging-address=127.0.0.1")) continue;
@@ -375,6 +387,8 @@ async function discoverDebugPort() {
 }
 
 export class CodexCdpClient {
+  platform = process.platform;
+  microphoneActive = false;
   socket = null;
   nextId = 0;
   pending = new Map();
@@ -476,18 +490,30 @@ export class CodexCdpClient {
   }
 
   async clickThreadKey(threadKey, slot) {
-    // Use the same native HID path as Codex Micro. The DOM click introduced
-    // perceptible navigation scheduling; it is now only a non-blocking fallback.
+    // Use the native HID path first. On Windows the renderer may acknowledge
+    // that event without navigating, so wait for the sidebar fallback too.
+    let dispatched = false;
     try {
       await this.dispatchAgent(slot, threadKey, 1);
+      dispatched = true;
+    } catch {}
+    if (this.platform === "win32") {
+      if (dispatched) {
+        await new Promise((resolve) => setTimeout(resolve, 35));
+        try { await this.dispatchAgent(slot, threadKey, 0); } catch {}
+      }
+      await this.activateThread(threadKey);
+      return;
+    }
+    if (dispatched) {
       void (async () => {
         await new Promise((resolve) => setTimeout(resolve, 35));
         await this.dispatchAgent(slot, threadKey, 0);
         await this.activateThread(threadKey);
       })().catch(() => {});
-    } catch {
-      await this.activateThread(threadKey);
+      return;
     }
+    await this.activateThread(threadKey);
   }
 
   async dispatchAgent(slot, threadKey, act) {
@@ -505,6 +531,19 @@ export class CodexCdpClient {
   }
 
   async dispatchNamedAction(action, pressed) {
+    if (action === "mic" && this.platform === "win32") {
+      if (!pressed) return true;
+      const nextActive = !this.microphoneActive;
+      await this.dispatchMicroMessage({
+        type: nextActive
+          ? "codex-micro-push-to-talk-start"
+          : "codex-micro-push-to-talk-stop"
+      }, nextActive
+        ? "codex-micro-push-to-talk-start"
+        : "codex-micro-push-to-talk-stop");
+      this.microphoneActive = nextActive;
+      return true;
+    }
     const key = MICRO_ACTION_KEYS[action];
     if (key) return this.dispatchAction(key, pressed ? 1 : 0);
     if (!RENDERER_ACTIONS.has(action)) {

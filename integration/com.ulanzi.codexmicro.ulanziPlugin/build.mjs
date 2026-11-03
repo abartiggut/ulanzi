@@ -2,7 +2,7 @@ import { copyFile, mkdir, rm, writeFile } from "node:fs/promises";
 import { build } from "esbuild";
 import { resolve } from "node:path";
 import { modelEncoderPng, modelEncoderSvg } from "./plugin/model-display.js";
-import { permissionEncoderPng, permissionActionPng } from "./plugin/permission-display.js";
+import { permissionEncoderPng } from "./plugin/permission-display.js";
 
 const packageRoot = resolve(".");
 const repositoryRoot = resolve(packageRoot, "../..");
@@ -14,7 +14,6 @@ await mkdir("layouts", { recursive: true });
 await writeFile("assets/encoder/model-standby.svg", modelEncoderSvg(null));
 await writeFile("assets/encoder/model-standby.png", Buffer.from(modelEncoderPng(null).split(",", 2)[1], "base64"));
 await writeFile("assets/encoder/permissions-standby.png", Buffer.from(permissionEncoderPng(null).split(",", 2)[1], "base64"));
-await writeFile("assets/icons/permissions.png", Buffer.from(permissionActionPng().split(",", 2)[1], "base64"));
 await writeFile("layouts/model-encoder.json", `${JSON.stringify({
   id: "codex-model-encoder",
   items: [{

@@ -12,7 +12,8 @@ import {
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { homedir } from "node:os";
-import { delimiter, join, resolve } from "node:path";
+import { delimiter, isAbsolute, join, resolve } from "node:path";
+import { createWindowsBridgeInstaller } from "./windows-bridge-installer.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -90,7 +91,7 @@ export async function selectBridgeNodeRuntime({
     // The fallback availability check below will provide the final result.
   }
   for (const executable of [...new Set(candidates)]) {
-    if (!executable.startsWith("/")) continue;
+    if (!isAbsolute(executable)) continue;
     if (!await exists(executable, fsConstants.X_OK)) continue;
     const resolvedExecutable = await realpath(executable);
     if (resolvedExecutable === resolvedFallback) continue;
@@ -120,6 +121,12 @@ export function createBridgeInstaller({
   environmentPath = process.env.PATH || "",
   execute = execFileAsync
 }) {
+  if (platform === "win32") {
+    return createWindowsBridgeInstaller({
+      pluginRoot, bridgeUrl, version, home, nodeExecutable,
+      environmentPath, execute
+    });
+  }
   const appRoot = join(home, "Library", "Application Support", "OpenCodexMicro");
   const userApplications = join(home, "Applications");
   const bridgeApp = join(userApplications, "Codex Bridge.app");

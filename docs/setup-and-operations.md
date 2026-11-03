@@ -1,5 +1,59 @@
 # Setup and Operations
 
+## Windows 10/11 (experimental)
+
+From the [abartiggut fork](https://github.com/abartiggut/ulanzi), install
+Codex Desktop and Ulanzi Studio 3.4.8 or later. Connect the D200. In PowerShell
+at the `windows-port` repository root, after saving profile edits and fully
+quitting Ulanzi Studio:
+
+```powershell
+npm ci
+npm run setup:windows
+```
+
+This builds and installs the Ulanzi plugin under
+`%APPDATA%\Ulanzi\UlanziDeck\Plugins\com.ulanzi.codexmicro.ulanziPlugin` and
+the user-local Bridge under `%LOCALAPPDATA%\OpenCodexMicro`. Restart Ulanzi
+Studio, then add Codex Micro actions to the device. The plugin starts the Bridge
+service when Ulanzi Studio opens it.
+
+Press **Launch Codex Bridge**. If Codex is already running without CDP, the
+launcher asks it to close, waits for the process to exit, and starts it with
+the local debug port. If only the tray process remains after 20 seconds, the
+launcher stops it. Finish any open Codex dialog if it cannot close. You can
+also run the launcher from PowerShell:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$env:LOCALAPPDATA\OpenCodexMicro\launch-codex.ps1"
+```
+
+To open a Codex page from the main deck with one key, assign Ulanzi Studio's
+**Pages → Go to Page** action to an empty main-deck key and select the page
+containing **Launch Codex Bridge**. When that page becomes active, the Bridge
+action starts Codex if CDP is disconnected. An existing connected Codex session
+is left running. Ulanzi Studio's Multi Action editor does not include its page
+navigation actions, so use the native page action for this workflow.
+
+The launcher uses the installed `OpenAI.Codex` package and enables CDP on
+`127.0.0.1:9222`. The Bridge API listens on `127.0.0.1:17373`. Check both
+installation and connection:
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:17373/health
+```
+
+`service` should be `OpenCodexMicro` and `codexConnected` should be `true`.
+The setup panel in Ulanzi Studio reports these separately. The port cannot be
+connected while Codex is running without the launcher. A full device test needs
+at least one action assigned to a physical key.
+
+For a repeatable installation by another coding agent, including locale
+selection, stable action IDs and Bridge command routing, follow the
+[Windows agent checklist](windows-agent-install.md).
+
+## macOS
+
 OpenCodexMicro has two installed components:
 
 ```text

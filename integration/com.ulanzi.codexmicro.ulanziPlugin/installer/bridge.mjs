@@ -308,7 +308,7 @@ var require_permessage_deflate = __commonJS({
       acceptAsServer(offers) {
         const opts = this._options;
         const accepted = offers.find((params) => {
-          if (opts.serverNoContextTakeover === false && params.server_no_context_takeover || params.server_max_window_bits && (opts.serverMaxWindowBits === false || typeof opts.serverMaxWindowBits === "number" && opts.serverMaxWindowBits > params.server_max_window_bits) || typeof opts.clientMaxWindowBits === "number" && (typeof params.client_max_window_bits === "number" ? opts.clientMaxWindowBits > params.client_max_window_bits : !params.client_max_window_bits)) {
+          if (opts.serverNoContextTakeover === false && params.server_no_context_takeover || params.server_max_window_bits && (opts.serverMaxWindowBits === false || typeof opts.serverMaxWindowBits === "number" && opts.serverMaxWindowBits > params.server_max_window_bits) || typeof opts.clientMaxWindowBits === "number" && !params.client_max_window_bits) {
             return false;
           }
           return true;
@@ -3710,7 +3710,7 @@ import { promisify as promisify2 } from "node:util";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
-// node_modules/ws/wrapper.mjs
+// ../../node_modules/ws/wrapper.mjs
 var import_stream = __toESM(require_stream(), 1);
 var import_extension = __toESM(require_extension(), 1);
 var import_permessage_deflate = __toESM(require_permessage_deflate(), 1);
@@ -4259,6 +4259,8 @@ var RENDERER_ACTIONS = /* @__PURE__ */ new Set(["pin", "new"]);
 var PIN_ACTION_LABELS = Object.freeze([
   "Pin chat",
   "Unpin chat",
+  "Chat anpinnen",
+  "Chat nicht mehr anpinnen",
   "\u7F6E\u9876\u804A\u5929",
   "\u53D6\u6D88\u7F6E\u9876\u804A\u5929",
   "\u91D8\u9078\u804A\u5929",
@@ -4268,6 +4270,8 @@ var NEW_ACTION_LABELS = Object.freeze([
   "New task",
   "New chat",
   "New conversation",
+  "Neuer Chat",
+  "Neue Aufgabe",
   "\u65B0\u5BF9\u8BDD",
   "\u65B0\u5C0D\u8A71",
   "\u65B0\u5EFA\u4EFB\u52A1",
@@ -4579,6 +4583,14 @@ async function fetchJson(url, timeout = 1200) {
   return response.json();
 }
 async function discoverDebugPort() {
+  if (process.platform === "win32") {
+    const port = Number(process.env.CODEX_CDP_PORT || 9222);
+    if (!Number.isInteger(port) || port < 1 || port > 65535) {
+      throw new Error("Invalid CODEX_CDP_PORT");
+    }
+    await fetchJson(`http://127.0.0.1:${port}/json/version`, 500);
+    return port;
+  }
   const { stdout } = await execFileAsync("/bin/ps", ["-axo", "command="], { timeout: 4e3 });
   for (const line of stdout.split("\n")) {
     if (!line.includes("--remote-debugging-address=127.0.0.1")) continue;
@@ -4593,6 +4605,8 @@ async function discoverDebugPort() {
   throw new Error("Codex is not running with the local debug bridge");
 }
 var CodexCdpClient = class {
+  platform = process.platform;
+  microphoneActive = false;
   socket = null;
   nextId = 0;
   pending = /* @__PURE__ */ new Map();
@@ -4690,17 +4704,33 @@ var CodexCdpClient = class {
     return this.clickThreadKey(localThreadKey(threadId), slot);
   }
   async clickThreadKey(threadKey, slot) {
+    let dispatched = false;
     try {
       await this.dispatchAgent(slot, threadKey, 1);
+      dispatched = true;
+    } catch {
+    }
+    if (this.platform === "win32") {
+      if (dispatched) {
+        await new Promise((resolve) => setTimeout(resolve, 35));
+        try {
+          await this.dispatchAgent(slot, threadKey, 0);
+        } catch {
+        }
+      }
+      await this.activateThread(threadKey);
+      return;
+    }
+    if (dispatched) {
       void (async () => {
         await new Promise((resolve) => setTimeout(resolve, 35));
         await this.dispatchAgent(slot, threadKey, 0);
         await this.activateThread(threadKey);
       })().catch(() => {
       });
-    } catch {
-      await this.activateThread(threadKey);
+      return;
     }
+    await this.activateThread(threadKey);
   }
   async dispatchAgent(slot, threadKey, act) {
     return this.dispatchMicroMessage({
@@ -4715,6 +4745,15 @@ var CodexCdpClient = class {
     }, "codex-micro-hid-event");
   }
   async dispatchNamedAction(action, pressed) {
+    if (action === "mic" && this.platform === "win32") {
+      if (!pressed) return true;
+      const nextActive = !this.microphoneActive;
+      await this.dispatchMicroMessage({
+        type: nextActive ? "codex-micro-push-to-talk-start" : "codex-micro-push-to-talk-stop"
+      }, nextActive ? "codex-micro-push-to-talk-start" : "codex-micro-push-to-talk-stop");
+      this.microphoneActive = nextActive;
+      return true;
+    }
     const key = MICRO_ACTION_KEYS[action];
     if (key) return this.dispatchAction(key, pressed ? 1 : 0);
     if (!RENDERER_ACTIONS.has(action)) {
@@ -4892,6 +4931,14 @@ var refreshPromise = null;
 var nextReconnectAt = 0;
 var composerRevision = 0;
 async function focusCodex() {
+  if (process.platform === "win32") {
+    const script = `Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class Focus { [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h); [DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr h, int n); }'; $p = Get-Process ChatGPT -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1; if (-not $p) { exit 1 }; [Focus]::ShowWindowAsync($p.MainWindowHandle, 9) | Out-Null; [Focus]::SetForegroundWindow($p.MainWindowHandle) | Out-Null`;
+    await execFileAsync2("powershell.exe", ["-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script], {
+      timeout: 5e3,
+      windowsHide: true
+    });
+    return;
+  }
   await execFileAsync2("/usr/bin/open", ["-b", "com.openai.codex"], {
     timeout: 3e3
   });
@@ -4930,7 +4977,13 @@ var server = createServer(async (request, response) => {
   const url = new URL(request.url || "/", `http://${HOST}:${PORT}`);
   if (request.method === "GET" && url.pathname === "/health") {
     await refresh(true);
-    return json(response, 200, { ok: true, codexConnected: cached.connected, updatedAt: cached.updatedAt });
+    return json(response, 200, {
+      ok: true,
+      service: "OpenCodexMicro",
+      pid: process.pid,
+      codexConnected: cached.connected,
+      updatedAt: cached.updatedAt
+    });
   }
   if (request.method === "GET" && url.pathname === "/state") {
     return json(response, 200, cached);

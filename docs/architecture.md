@@ -28,7 +28,9 @@ The initial discovery locates Codex's Micro store, event bus, resolver,
 context map, and usage query clients. Those references are cached for the
 renderer lifecycle and rediscovered only when they become invalid.
 
-Task activation and Fast, Fork, Submit, and Mic use Codex Micro events. Pin,
+Task activation and Fast, Fork, and Submit use Codex Micro events. On Windows,
+Mic toggles Codex's push-to-talk start/stop events with successive presses;
+on macOS it keeps the original press/release behavior. Pin,
 New, and Steer invoke the matching semantic renderer controls. An uncertain
 HTTP failure is never replayed through another mechanism because the first
 request may already have executed.

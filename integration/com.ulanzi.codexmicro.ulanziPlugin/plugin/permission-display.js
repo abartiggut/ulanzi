@@ -1,20 +1,4 @@
-import { fillRoundedRect, drawText, drawLine, pngDataUrl } from './encoder-raster.js';
-
-export function permissionActionPng() {
-  const pixels = new Uint8Array(196 * 196 * 4);
-  fillRoundedRect(pixels, 196, 196, 2, 2, 192, 192, 30, '#bfc4c2');
-  fillRoundedRect(pixels, 196, 196, 4, 4, 188, 188, 28, '#eeeeed');
-  const shield = [[98, 45], [139, 62], [135, 105], [123, 127], [98, 148], [73, 127], [61, 105], [57, 62], [98, 45]];
-  for (let index = 1; index < shield.length; index++) {
-    for (let offset = -2; offset <= 2; offset++) drawLine(pixels, 196, 196,
-      shield[index - 1][0] + offset, shield[index - 1][1], shield[index][0] + offset, shield[index][1], '#384541');
-  }
-  for (let offset = -2; offset <= 2; offset++) {
-    drawLine(pixels, 196, 196, 78, 95 + offset, 92, 109 + offset, '#087f5b');
-    drawLine(pixels, 196, 196, 92, 109 + offset, 119, 80 + offset, '#087f5b');
-  }
-  return pngDataUrl(pixels, 196, 196);
-}
+import { fillRoundedRect, drawText, pngDataUrl } from './encoder-raster.js';
 
 /** Draw short English labels at native dial resolution; never use the host title. */
 export function permissionEncoderPng(state, choice = 'once', pending = false, connected = true) {

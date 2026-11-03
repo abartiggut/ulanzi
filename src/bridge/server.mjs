@@ -25,6 +25,14 @@ let nextReconnectAt = 0;
 let composerRevision = 0;
 
 async function focusCodex() {
+  if (process.platform === "win32") {
+    const script = `Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class Focus { [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h); [DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr h, int n); }'; $p = Get-Process ChatGPT -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1; if (-not $p) { exit 1 }; [Focus]::ShowWindowAsync($p.MainWindowHandle, 9) | Out-Null; [Focus]::SetForegroundWindow($p.MainWindowHandle) | Out-Null`;
+    await execFileAsync("powershell.exe", ["-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script], {
+      timeout: 5000,
+      windowsHide: true
+    });
+    return;
+  }
   await execFileAsync("/usr/bin/open", ["-b", "com.openai.codex"], {
     timeout: 3000
   });
@@ -67,7 +75,8 @@ const server = createServer(async (request, response) => {
   const url = new URL(request.url || "/", `http://${HOST}:${PORT}`);
   if (request.method === "GET" && url.pathname === "/health") {
     await refresh(true);
-    return json(response, 200, { ok: true, codexConnected: cached.connected, updatedAt: cached.updatedAt });
+    return json(response, 200, { ok: true, service: "OpenCodexMicro", pid: process.pid,
+      codexConnected: cached.connected, updatedAt: cached.updatedAt });
   }
   if (request.method === "GET" && url.pathname === "/state") {
     return json(response, 200, cached);

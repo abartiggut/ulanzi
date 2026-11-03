@@ -1,9 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="196" height="196" viewBox="0 0 196 196">
-  <!-- Reuse the original silver key surface; inline this image when rasterising. -->
-  <image href="usage-base.png" width="196" height="196"/>
-  <!-- Lucide at-sign (ISC / Feather MIT); see THIRD_PARTY_NOTICES.md. -->
-  <g transform="translate(65.6 61.6) scale(2.7)" fill="none" stroke="#292b29" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="12" cy="12" r="4"/>
-    <path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8"/>
-  </g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="196" height="196" viewBox="0 0 196 196">
+  <defs>
+    <linearGradient id="surface" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#1b2934"/><stop offset=".55" stop-color="#111b24"/><stop offset="1" stop-color="#0c131b"/></linearGradient>
+    <radialGradient id="wash" cx=".5" cy=".29" r=".63"><stop stop-color="#73dfd5" stop-opacity=".20"/><stop offset="1" stop-color="#73dfd5" stop-opacity="0"/></radialGradient>
+    <linearGradient id="top" x1="0" x2="1"><stop stop-color="#73dfd5" stop-opacity=".22"/><stop offset=".5" stop-color="#73dfd5"/><stop offset="1" stop-color="#73dfd5" stop-opacity=".22"/></linearGradient>
+  </defs>
+  <rect width="196" height="196" rx="28" fill="#090f15"/>
+  <rect x="6" y="6" width="184" height="184" rx="23" fill="url(#surface)" stroke="#324350" stroke-width="1.5"/>
+  <rect x="8" y="8" width="180" height="180" rx="21" fill="url(#wash)"/>
+  <path d="M32 20H164" stroke="url(#top)" stroke-width="3" stroke-linecap="round"/>
+  <path d="M31 164H165" stroke="#d4e5ed" stroke-opacity=".08" stroke-width="1.5" stroke-linecap="round"/>
+
+  <g fill="none" stroke="#eef6fb" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="98" cy="87" r="49"/><circle cx="98" cy="87" r="18"/><path d="M116 69v28c0 11 17 11 17 0V87"/></g>
+  </svg>

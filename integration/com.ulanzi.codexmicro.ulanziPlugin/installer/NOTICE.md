@@ -5,6 +5,10 @@ OpenCodexMicro. The MIT terms in `LICENSE` control the project-authored code.
 Third-party components remain subject to the licenses listed in
 `THIRD_PARTY_NOTICES.md`.
 
+The repository at `github.com/abartiggut/ulanzi` is an independent downstream
+fork. Its Windows changes are maintained by abartiggut contributors, not by
+Ulanzi, the original authors, or OpenAI.
+
 ## Provenance and material changes
 
 The original OpenCodexMicro work is copyright 2026 Nian Liu. The original

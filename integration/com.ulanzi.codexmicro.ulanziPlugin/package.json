@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "node build.mjs",
-    "check": "node --check plugin/app.js && node --check plugin/model-display.js && node --check plugin/encoder-raster.js && node --check plugin/permission-display.js && node --check plugin/bridge-installer.js",
+    "check": "node --check plugin/app.js && node --check plugin/task-display.js && node --check plugin/model-display.js && node --check plugin/encoder-raster.js && node --check plugin/permission-display.js && node --check plugin/bridge-installer.js && node --check plugin/windows-bridge-installer.js",
     "smoke": "node test/smoke.mjs"
   },
   "dependencies": {

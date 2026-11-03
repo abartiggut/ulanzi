@@ -7,6 +7,21 @@ dependency version changes, review and update this file before distribution.
 Project-authored code is covered by `LICENSE`; provenance and responsibility
 boundaries are recorded in `NOTICE.md`.
 
+## Codex mark
+
+- Source: the installed OpenAI Codex Windows app icon (256 px unplated asset)
+- Use: the Codex mark in the plugin and main-deck icon
+- Owner: OpenAI. The mark is used to identify the Codex integration; this
+  project is independent and is not endorsed by OpenAI.
+- Brand guidance: https://openai.com/brand/
+
+## resvg-js
+
+- Project: https://github.com/yisibl/resvg-js
+- Use: build-time rasterisation of the project-authored SVG icon set
+- License: MPL-2.0
+- The package is a development dependency and is not bundled into the plugin.
+
 ## ws
 
 - Project: https://github.com/websockets/ws

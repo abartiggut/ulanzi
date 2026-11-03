@@ -10,10 +10,11 @@ const navigateAction = manifest.Actions.find(action =>
   action.UUID === "com.ulanzi.ulanzistudio.codexmicro.navigate"
 );
 assert.deepEqual(navigateAction?.Controllers, ["Encoder"]);
-assert.equal(navigateAction?.Encoder?.layout, "$UA1");
-assert.equal(manifest.Version, "0.4.1");
+assert.equal(navigateAction?.Encoder?.layout, "layouts/navigate-encoder.json");
+assert.equal(manifest.Version, "0.5.1");
 assert.equal(manifest.Software?.MinVersion, "3.0.1");
 assert.equal(manifest.OS?.find(item => item.Platform === "mac")?.MinimumVersion, "13.0");
+assert.equal(manifest.OS?.find(item => item.Platform === "windows")?.MinimumVersion, "10");
 assert.ok(
   manifest.Actions.every(action => action.PropertyInspectorPath === "property-inspector/setup.html"),
   "every action must expose the shared Bridge setup inspector"
@@ -35,16 +36,9 @@ for (const asset of [
   assert.ok((await readFile(new URL(asset, packageRootUrl))).length > 0, `${asset} must be bundled`);
 }
 assert.match(manifest.Overview, /Ulanzi D200 Series/);
-assert.match(manifest.Description, /INSTALLATION ENVIRONMENT/);
-assert.match(manifest.Description, /LLM \/ AGENT INSTALLATION/);
-assert.match(manifest.Description, /MANUAL INSTALLATION/);
-assert.match(manifest.Description, /Latest Task & Scroll Encoder/);
-assert.match(
-  manifest.Description,
-  /Install the Ulanzi Studio plugin for me: https:\/\/github\.com\/UlanziTechnology\/OpenCodexMicro#1-llm--agent-installation/
-);
-assert.match(manifest.Description, /always launch Codex through ~\/Applications\/Codex Bridge\.app/i);
-assert.match(manifest.Description, /open ~\/Applications\/Codex\\ Bridge\.app$/);
+assert.match(manifest.Description, /Windows 10\/11/);
+assert.match(manifest.Description, /npm run setup:windows/);
+assert.match(manifest.Description, /github\.com\/abartiggut\/ulanzi/);
 
 const localizedActionNames = {
   "en.json": ["Codex Task 1", "Latest Task & Scroll", "Submit to Codex"],
@@ -82,12 +76,14 @@ for (const locale of [
   "es_ES.json"
 ]) {
   const messages = JSON.parse(await readFile(new URL(locale, packageRootUrl)));
+  const forkLocale = locale === "en.json" || locale === "de_DE.json";
   assert.equal(messages.Name, "Codex Micro", `${locale} must localize Name`);
   assert.ok(messages.Overview?.length > 20, `${locale} must localize Overview`);
-  assert.match(messages.Description, /https:\/\/github\.com\/UlanziTechnology\/OpenCodexMicro/);
-  assert.match(messages.Description, /npm run install:plugin/);
+  assert.match(messages.Description, forkLocale ? /github\.com\/abartiggut\/ulanzi/ : /github\.com\/UlanziTechnology\/OpenCodexMicro/);
+  if (forkLocale) assert.match(messages.Description, /npm run setup:windows/);
+  else assert.match(messages.Description, /npm run install:plugin/);
   assert.match(messages.Description, /npm run setup/);
-  assert.match(messages.Description, /Latest Task & Scroll/);
+  if (!forkLocale) assert.match(messages.Description, /Latest Task & Scroll/);
   assert.ok(messages.Localization?.BridgeSetup?.length > 0, `${locale} must localize the setup page`);
   assert.ok(messages.Localization?.InstallRepair?.length > 0, `${locale} must localize Bridge installation`);
   assert.ok(messages.Localization?.UninstallBridge?.length > 0, `${locale} must localize Bridge uninstallation`);
@@ -95,7 +91,7 @@ for (const locale of [
   assert.ok(messages.Localization?.BackgroundActivityTitle?.length > 0, `${locale} must explain background activity`);
   assert.ok(messages.Localization?.NodeSelectionStrategy?.length > 0, `${locale} must explain Node selection`);
   assert.ok(messages.Localization?.UlanziNodeSignatureNotice?.length > 0, `${locale} must explain the Ulanzi Node signature`);
-  assert.ok(
+  if (!forkLocale) assert.ok(
     messages.Description.includes(`${localizedInstallPrompts[locale]}${
       locale.startsWith("zh_") || locale === "ja_JP.json" ? "" : " "
     }${llmInstallationLink}`),
@@ -111,7 +107,7 @@ for (const locale of [
     localizedActionNames[locale],
     `${locale} action localization must follow manifest action order`
   );
-  assert.match(
+  if (!forkLocale) assert.match(
     messages.Description.split("\n\n").at(-1),
     /open ~\/Applications\/Codex\\ Bridge\.app$/,
     `${locale} must end with the Bridge launch command`
@@ -123,7 +119,7 @@ const bridge = createServer((request, response) => {
   bridgeRequests.push(`${request.method} ${request.url}`);
   response.setHeader("Content-Type", "application/json");
   if (request.url === "/health") {
-    response.end(JSON.stringify({ ok: true, codexConnected: true, updatedAt: Date.now() }));
+    response.end(JSON.stringify({ ok: true, service: "OpenCodexMicro", codexConnected: true, updatedAt: Date.now() }));
     return;
   }
   if (request.url === "/state") {
@@ -183,16 +179,25 @@ try {
   );
   assert.equal(setupStatus?.payload?.status?.serviceOnline, true);
   assert.equal(setupStatus?.payload?.status?.cdpConnected, true);
-  assert.equal(setupStatus?.payload?.status?.bundledVersion, "0.4.1");
+  assert.equal(setupStatus?.payload?.status?.bundledVersion, "0.5.1");
 
-  const taskPaths = [
-    "assets/icons/task-working.png",
-    "assets/icons/task-complete.png",
-    "assets/icons/task-attention.png",
-    "assets/icons/task-error.png",
-    "assets/icons/task-idle.png"
-  ];
-  for (let index = 0; index < taskPaths.length; index += 1) {
+  const launchEvent = {
+    uuid: "com.ulanzi.ulanzistudio.codexmicro.launch",
+    actionid: "launch-on-page-two",
+    key: "2_2",
+    param: {}
+  };
+  client.send(JSON.stringify({ cmd: "add", ...launchEvent }));
+  client.send(JSON.stringify({ cmd: "setactive", ...launchEvent, active: true }));
+  await new Promise(resolve => setTimeout(resolve, 150));
+  assert.ok(messages.some(message => message.cmd === "setactive" &&
+    message.actionid === launchEvent.actionid && message.active === true));
+  assert.ok(!messages.some(message => message.cmd === "logMessage" &&
+    message.actionid === launchEvent.actionid),
+  "An already connected Codex must not be relaunched when its page becomes active");
+
+  const taskStates = ["WORKING", "DONE", "INPUT NEEDED", "ERROR", "IDLE"];
+  for (let index = 0; index < taskStates.length; index += 1) {
     client.send(JSON.stringify({
       cmd: "add",
       uuid: `com.ulanzi.ulanzistudio.codexmicro.task${index + 1}`,
@@ -202,21 +207,24 @@ try {
     }));
   }
   await new Promise(resolve => setTimeout(resolve, 700));
-  for (let index = 0; index < taskPaths.length; index += 1) {
+  for (let index = 0; index < taskStates.length; index += 1) {
     const taskUuid = `com.ulanzi.ulanzistudio.codexmicro.task${index + 1}`;
     const state = messages.find(message =>
       message.cmd === "state" && message.param?.statelist?.[0]?.uuid === taskUuid
     );
     const item = state?.param?.statelist?.[0];
-    assert.equal(item?.type, 2);
-    assert.equal(item?.path, taskPaths[index]);
-    assert.equal(item?.showtext, true);
+    assert.equal(item?.type, 1);
+    assert.match(item?.data || "", /^data:image\/svg\+xml;base64,/);
+    assert.equal(item?.showtext, false);
     assert.equal(Object.hasOwn(item || {}, "state"), false, "task icon update must not send a state index");
+    const taskSvg = Buffer.from(item.data.split(",")[1], "base64").toString();
+    assert.match(taskSvg, new RegExp(taskStates[index]));
   }
   const task1State = messages.find(message =>
     message.cmd === "state" && message.param?.statelist?.[0]?.uuid.endsWith(".task1")
   );
-  assert.equal(task1State?.param?.statelist?.[0]?.textdata, "Working task");
+  const task1Svg = Buffer.from(task1State.param.statelist[0].data.split(",")[1], "base64").toString();
+  assert.match(task1Svg, />Working task<\/text>/);
 
   client.send(JSON.stringify({ cmd: "keydown", uuid: "com.ulanzi.ulanzistudio.codexmicro.task1", actionid: "a1", key: "0_0", param: {} }));
   client.send(JSON.stringify({ cmd: "run", uuid: "com.ulanzi.ulanzistudio.codexmicro.task1", actionid: "a1", key: "0_0", param: {} }));
@@ -251,7 +259,7 @@ try {
     message.param?.statelist?.[0]?.uuid === navigateEvent.uuid
   );
   assert.equal(navigateState?.param?.statelist?.[0]?.path, "assets/icons/task-working.png");
-  assert.equal(navigateState?.param?.statelist?.[0]?.textdata, "Working task");
+  assert.equal(navigateState?.param?.statelist?.[0]?.textdata, "");
 
   const actions = ["fast", "pin", "new", "fork", "steer", "mic", "submit"];
   for (const [index, action] of actions.entries()) {
@@ -302,7 +310,7 @@ try {
   assert.match(usageItem?.data || "", /^data:image\/svg\+xml;base64,/);
   const usageSvg = Buffer.from(usageItem.data.split(",")[1], "base64").toString();
   assert.match(usageSvg, />23<tspan/);
-  assert.match(usageSvg, /#e89b2d/);
+  assert.match(usageSvg, /#ffc66a/);
   process.stdout.write("Codex Micro plugin smoke test passed.\n");
 } finally {
   child.kill("SIGTERM");

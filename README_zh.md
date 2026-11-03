@@ -1,5 +1,9 @@
 # OpenCodexMicro
 
+> Windows 10/11 users of the abartiggut fork: follow the
+> [Windows installation guide for AI agents](docs/windows-agent-install.md).
+> The installation steps below describe the original macOS setup.
+
 **通过 Ulanzi Studio，用 Ulanzi D200 Series 操控 Codex Desktop。**
 
 [English](README.md)

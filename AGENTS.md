@@ -1,25 +1,62 @@
-# OpenCodexMicro LLM Guide
+# OpenCodexMicro agent guide
 
-This file is the repository entry point for LLMs and coding agents. It explains
-what the project contains and how to route setup work through the repository's
-skills.
+This is the entry point for coding agents installing or operating the
+abartiggut Windows fork. Detect the host OS first. On Windows, follow
+[the complete Windows agent checklist](docs/windows-agent-install.md);
+the repository's two setup skills are for macOS.
 
 ## Project overview
 
 OpenCodexMicro connects Codex Desktop to an Ulanzi Studio plugin through a
-loopback-only Bridge:
+loopback-only Bridge and a connected Ulanzi D200:
 
 ```text
-Codex Desktop -> Codex Bridge.app / sidecar -> Ulanzi Studio plugin -> device
+Codex Desktop -> local Bridge -> Ulanzi Studio plugin -> D200
 ```
 
-The Ulanzi-maintained implementation scope is limited to
+This repository is an independent fork. The upstream Ulanzi-maintained
+implementation scope is limited to
 `integration/com.ulanzi.codexmicro.ulanziPlugin/`. The plugin consumes state
 and action interfaces exposed by the existing Bridge. Ulanzi did not design,
 specify, develop, or maintain CDP or Codex's CDP implementation. Read
 `NOTICE.md` before making attribution or responsibility claims.
 
-## Required setup routing
+## Publishing the Windows port
+
+The development repository is `https://github.com/abartiggut/ulanzi`.
+`https://github.com/abartiggut/OpenCodexMicro` is the GitHub-registered fork
+of `UlanziTechnology/OpenCodexMicro` used for discoverability in its fork list.
+When asked to publish Windows-port changes, keep the `windows-port` branch on
+both abartiggut repositories in sync. Do not create a pull request to the
+upstream Ulanzi repository unless the user explicitly asks for one.
+
+## Windows 10/11: install without guessing
+
+Use the `windows-port` branch. First inspect any existing checkout and the
+installed plugin at
+`%APPDATA%\Ulanzi\UlanziDeck\Plugins\com.ulanzi.codexmicro.ulanziPlugin`.
+Read [docs/windows-agent-install.md](docs/windows-agent-install.md) for
+preflight, exact commands, language behaviour, Studio action assignment,
+Bridge routes, health checks and restart handling.
+
+From a clean checkout, after saving Studio profile edits and fully quitting
+Ulanzi Studio, the Windows install commands are:
+
+~~~powershell
+npm ci
+npm run setup:windows
+~~~
+
+Restart Ulanzi Studio and assign the Codex Micro actions in its GUI. Use
+**Launch Codex Bridge** to start Codex with CDP, then check
+`http://127.0.0.1:17373/health` for `codexConnected=true`. The launcher
+may close the current Codex GUI. If this agent runs inside that GUI, save
+progress before triggering the restart and resume verification afterward.
+Do not use `npm run setup`, `Codex Bridge.app`, or the macOS skills on
+Windows. The Ulanzi Studio language selects action labels; it does not change
+the install command or Bridge routes.
+
+## macOS setup routing
 
 When asked to install, configure, repair, or start OpenCodexMicro, inspect the
 installed Ulanzi Studio plugins before choosing a skill. Do not infer plugin
@@ -64,5 +101,7 @@ Python/D200 standalone runtime.
 - `src/bridge/`: inherited local Bridge implementation.
 - `scripts/install-plugin.mjs`: atomic local plugin installer.
 - `scripts/install.mjs`: Codex Bridge.app and sidecar installer.
+- `scripts/install-windows.mjs`: Windows Bridge installer.
+- `docs/windows-agent-install.md`: Windows install, language and action routing.
 - `LICENSE`, `NOTICE.md`, and `THIRD_PARTY_NOTICES.md`: centralized licensing,
   attribution, modification, and responsibility information.

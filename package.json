@@ -10,17 +10,20 @@
   },
   "scripts": {
     "test": "node --test test/*_test.mjs",
+    "icons:generate": "node scripts/generate-icons.mjs",
     "build:bridge": "node scripts/build-bridge.mjs",
     "build:plugin": "npm --prefix integration/com.ulanzi.codexmicro.ulanziPlugin run build",
-    "check:node": "node --check scripts/install.mjs && node --check scripts/install-plugin.mjs && node --check scripts/uninstall.mjs && node --check scripts/build-bridge.mjs && node --check src/bridge/thread-key.mjs && node --check src/bridge/composer-control.mjs && node --check src/bridge/context-menu-control.mjs && node --check src/bridge/permission-control.mjs && node --check src/bridge/codex-cdp.mjs && node --check src/bridge/server.mjs",
+    "check:node": "node --check scripts/generate-icons.mjs && node --check scripts/install.mjs && node --check scripts/install-plugin.mjs && node --check scripts/install-windows.mjs && node --check scripts/uninstall.mjs && node --check scripts/build-bridge.mjs && node --check src/bridge/thread-key.mjs && node --check src/bridge/composer-control.mjs && node --check src/bridge/context-menu-control.mjs && node --check src/bridge/permission-control.mjs && node --check src/bridge/codex-cdp.mjs && node --check src/bridge/server.mjs",
     "check:plugin": "npm --prefix integration/com.ulanzi.codexmicro.ulanziPlugin run check && npm --prefix integration/com.ulanzi.codexmicro.ulanziPlugin run smoke",
     "check": "npm run test && npm run check:node && npm run build:bridge && npm run build:plugin && npm run check:plugin",
     "setup": "node scripts/install.mjs",
+    "setup:windows": "npm run build:plugin && node scripts/install-plugin.mjs && node scripts/install-windows.mjs",
     "install:plugin": "node scripts/install-plugin.mjs",
     "bridge:start": "open \"$HOME/Applications/Codex Bridge.app\"",
     "uninstall": "node scripts/uninstall.mjs"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "esbuild": "^0.25.12",
     "ws": "^8.21.1"
   }

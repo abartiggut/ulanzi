@@ -5,10 +5,11 @@ Codex Micro category and drag a keypad action onto a key or an Encoder action
 onto a dial position.
 
 Select any configured action to open the shared **Codex Bridge Setup** page.
-The page distinguishes the wrapper app installation, Bridge background
-service, and Codex CDP connection. It can install or repair the Bridge from
-resources bundled with the plugin, launch Codex Bridge, and recheck status.
-No repository or npm working directory is required for this flow.
+On Windows, first install the plugin and Bridge with `npm run setup:windows`
+from [this fork](https://github.com/abartiggut/ulanzi). The setup page then
+shows Bridge and Codex CDP status and can repair or launch the Bridge from
+resources bundled with the plugin. On macOS it also shows the wrapper app.
+Once the plugin is installed, the setup-page controls need no npm directory.
 
 ## Actions
 
@@ -19,15 +20,18 @@ No repository or npm working directory is required for this flow.
 | Usage | Show remaining usage; press to focus Codex |
 | Pin | Pin or unpin the active task |
 | New | Create a new Codex task |
-| Launch Codex Bridge | Launch Codex Bridge.app; install or repair missing app/service components first, then launch |
+| Launch Codex Bridge | On Windows, start Codex with the local Bridge launcher; on macOS, launch Codex Bridge.app |
 | Latest Task & Scroll (Encoder) | Press to open task 1; turn left/right to send mouse-wheel up/down through the Ulanzi hotkey protocol |
 | Model & Reasoning (Encoder) | Turn right toward the highest model entry, left toward the lowest; hold and turn right/left to raise/lower reasoning effort; neither list wraps |
 | Context Navigator (Encoder) | First turn opens the + / @ menu; turn left/right to move up/down; click to select, hold and turn to close; clicking while closed does nothing |
 | Permission Pilot (Encoder) | Turn to change permission policy; for a pending approval select ONCE / CHAT / DENY, then press |
 | Fork | Fork the active task |
 | Steer | Send the visible composer text as steering input to a running task |
-| Mic | Press and release the Codex Micro microphone action |
+| Mic | On Windows, press once to start dictation and again to stop; on macOS, use the Codex Micro press/release action |
 | Submit | Submit or queue the composer text |
+
+Steer works only when the active Codex composer exposes a Steer action. Codex's
+Queue action waits for the current turn to finish and is not used as a fallback.
 
 Launch Codex Bridge works even when the Bridge is offline. It reuses the bundled
 installer and its Node selection strategy; no repository or Terminal command is
@@ -54,18 +58,20 @@ Each press is bound to the displayed conversation and request; stale or
 duplicate submissions are rejected. Device layout uses `[0,7,126,126]` and
 retains the hardware-required empty text item.
 
-Task actions dynamically use the plugin's idle, working, complete, attention,
-error, and offline artwork. Usage is rendered at runtime from the allowance
-returned by the Bridge. Latest Task & Scroll mirrors task 1's status artwork.
+Task actions render the live chat title and an idle, working, complete,
+attention, error or offline label inside a small terminal window. The color
+and text change with the Bridge state. Usage is rendered at runtime from the
+allowance returned by the Bridge. Latest Task & Scroll mirrors task 1's
+status artwork.
 Latest Task & Scroll and Context Navigator show only a square image in
 `[0, 7, 126, 126]`, vertically centered in the 126×140 dial region without
 a title. Their layouts retain a hidden, empty
 `encoder-label` text item for D200X compatibility.
 
-Task 1–5 show an attention icon and a localized pending-approval or reply-needed
-label beside the task title for Codex's `awaiting-approval` and
-`awaiting-response` states. Clearing the request restores the current task state;
-displaying the state never approves or rejects a request.
+Task 1–5 show **INPUT NEEDED** (or **EINGABE NÖTIG** in German Studio) with
+the task title for Codex's `awaiting-approval` and `awaiting-response`
+states. Clearing the request restores the current task state; displaying the
+state never approves or rejects a request.
 
 Model & Reasoning is a separate dial action. Its 126×140 layout places a PNG
 model card in `[0, 7, 126, 126]`, leaving 7px above and below the image.
@@ -107,13 +113,15 @@ placed on more than one key.
 
 ## Runtime requirements
 
-- Start Codex through `~/Applications/Codex Bridge.app`.
+- On Windows, start Codex through the **Launch Codex Bridge** key or
+  `%LOCALAPPDATA%\OpenCodexMicro\launch-codex.ps1`.
+- On macOS, start Codex through `~/Applications/Codex Bridge.app`.
 - Keep the Bridge sidecar running at `127.0.0.1:17373`.
 - Allow Ulanzi Studio under macOS System Settings > Privacy & Security >
   Accessibility so the Encoder can emit mouse-wheel events.
 - Restart Ulanzi Studio after installing a new plugin build.
 
 The plugin does not require a separate device service, shortcut file, or theme
-configuration. To change shipped artwork, edit the files under
-`integration/com.ulanzi.codexmicro.ulanziPlugin/assets/icons/`, rebuild, and
+configuration. To change shipped artwork, edit `scripts/generate-icons.mjs`
+or `plugin/task-display.js`, run `npm run icons:generate`, rebuild, and
 reinstall the plugin.

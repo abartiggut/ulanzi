@@ -24,9 +24,9 @@ const localizationFiles = [
 ];
 const pluginName = basename(source);
 const pluginsRoot = join(
-  homedir(),
-  "Library",
-  "Application Support",
+  process.platform === "win32"
+    ? process.env.APPDATA || join(homedir(), "AppData", "Roaming")
+    : join(homedir(), "Library", "Application Support"),
   "Ulanzi",
   "UlanziDeck",
   "Plugins"
